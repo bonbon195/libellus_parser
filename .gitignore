@@ -1,9 +1,6 @@
 /.env
 /.idea
-/consult стефанович.xlsx
-/creds-dev.json
-/creds.json
+/*.json
 /main
 /main.exe
-/test.xlsx
-/Консультации.xlsx
+/*.xlsx

@@ -13,62 +13,6 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
-/* func ParseConsultationsFile(fileName string) (map[string][]model.ConsultDay, error) {
-	f, err := excelize.OpenFile(fileName)
-	if err != nil {
-		return nil, err
-	}
-	sheets := f.WorkBook.Sheets.Sheet
-	if err != nil {
-		return nil, err
-	}
-	var name = ""
-	today := time.Now().In(time.FixedZone("+05", 18000))
-	for _, sheet := range sheets {
-		if sheet.State == "visible" {
-			name = sheet.Name
-			go func (name string)  {
-
-			}(name)
-			dates := strings.Split(name, " ")
-			var date1 time.Time = time.Time{}
-			var date2 time.Time = time.Time{}
-			for i, dateStr := range dates {
-				if strings.Contains(dateStr, ".") {
-					if i == 0 {
-						date1, err = parseDate(dateStr, true)
-						if err != nil {
-							return nil, err
-						}
-					} else {
-						date2, err = parseDate(dateStr, false)
-						if err != nil {
-							return nil, err
-						}
-					}
-				}
-
-			}
-			if today.Before(date1) && today.Before(date2) {
-				break
-			} else if today.After(date1) && today.Before(date2) {
-				break
-			}
-		}
-	}
-	log.Println(name)
-	cols, err := f.GetCols(name)
-	if err != nil {
-		return nil, err
-	}
-	startCol, startRow := getStartCoords(&cols)
-	teachers, err := getTeachers(&startCol, &startRow, &cols, &name, f)
-	if err != nil {
-		return nil, err
-	}
-	return teachers, nil
-} */
-
 func ParseConsultationsFile(fileName string) (map[string]map[string][]model.ConsultDay, error) {
 
 	f, err := excelize.OpenFile(fileName)
@@ -139,41 +83,6 @@ func parseDate(str string) (string, error) {
 	}
 	return str, nil
 }
-
-/* func parseDate(str string, isFirst bool) (time.Time, error) {
-	var month = 1
-	var day = 1
-	re := regexp.MustCompile(`([\d]{2})\.([\d]{2})`)
-	dates := re.FindAllString(str, 2)
-	for _, v := range dates {
-		splittedStr := strings.Split(v, ".")
-		for i, v := range splittedStr {
-			if i == 0 {
-				dayy, err := strconv.Atoi(v)
-				if err != nil {
-					return time.Time{}, err
-				}
-				day = dayy
-			} else {
-				monthh, err := strconv.Atoi(v)
-
-				if err != nil {
-					return time.Time{}, err
-				}
-				month = monthh
-			}
-		}
-	}
-
-	hour := 0
-	min := 0
-	if !isFirst {
-		hour = 23
-		min = 59
-	}
-	date := time.Date(time.Now().Year(), time.Month(month), day, hour, min, min, min, time.FixedZone("+05", +18000))
-	return date, nil
-} */
 
 func getStartCoords(cols *[][]string) (int, int) {
 	for colNum, col := range *cols {
