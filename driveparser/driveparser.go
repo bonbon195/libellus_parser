@@ -15,7 +15,7 @@ import (
 )
 
 func GetClient() (*http.Client, error) {
-	b, err := os.ReadFile("creds.json")
+	b, err := os.ReadFile(os.Getenv("CREDENTIALS_FILE"))
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +66,7 @@ func GetFile(service *drive.Service, fileId string, fileName string) error {
 
 func WatchFile(service *drive.Service, fileId string) (*drive.Channel, error) {
 	channel := drive.Channel{
-		Address:    "https://octo.hk/ynFY9SOsPY2xBKp0wNr3",
+		Address:    os.Getenv("WEB_HOOK_ADDRESS"),
 		Type:       "web_hook",
 		Id:         uuid.New().String(),
 		Expiration: time.Now().UTC().Add(time.Hour * 24).UnixMilli()}

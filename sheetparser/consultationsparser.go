@@ -57,10 +57,17 @@ func ParseConsultationsFile(fileName string) (map[string]map[string][]model.Cons
 
 func parseSheet(name string, f *excelize.File) (map[string][]model.ConsultDay, error) {
 	log.Println(name)
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("panic at ", name, ": ", r)
+
+		}
+	}()
 	cols, err := f.GetCols(name)
 	if err != nil {
 		return nil, err
 	}
+
 	startCol, startRow := getStartCoords(&cols)
 	teachers, err := getTeachers(&startCol, &startRow, &cols, &name, f)
 	if err != nil {

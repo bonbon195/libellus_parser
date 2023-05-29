@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/joho/godotenv"
 	"golang.org/x/exp/maps"
 	"google.golang.org/api/drive/v2"
 )
@@ -31,6 +32,11 @@ func main() {
 	consultationsData = make(map[string]map[string][]model.ConsultDay)
 	mutex = &sync.Mutex{}
 	w = &sync.WaitGroup{}
+
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	for {
 		err := updateDb()

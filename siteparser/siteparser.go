@@ -34,14 +34,34 @@ func GetWebPage() (*goquery.Document, error) {
 	return doc, nil
 }
 
+// type urls struct{
+// 	first string
+// 	last string
+// }
+
 func ParseWebPage(doc *goquery.Document) {
-	doc.Find(".gem-list").Each(func(i int, selection *goquery.Selection) {
-		selection.Find("li").Each(func(i2 int, selection2 *goquery.Selection) {
-			Specialities = append(Specialities, model.Speciality{
-				Code: selection2.Text()[:8],
-				Id:   strings.Split(helper.First(selection2.Find("a").Attr("href")), "/")[5]})
+	codes := make([]string, 0)
+	ids := make([]string, 0)
+	doc.Find(".gem-list-type-star").Each(func(i int, selection *goquery.Selection) {
+		selection.Find("ul").Each(func(i2 int, selection2 *goquery.Selection) {
+			selection2.Find("li").Each(func(i int, s *goquery.Selection) {
+				codes = append(codes, strings.Split(selection2.Text(), " ")[0])
+
+			})
+		})
+		selection.Find("p").Each(func(i2 int, selection2 *goquery.Selection) {
+			selection3 := selection2.Find("a")
+			// hrefFirst, _ := selection3.First().Attr("href")
+			hrefLast, _ := selection3.Last().Attr("href")
+			ids = append(ids, strings.Split(hrefLast, "/")[5])
+			// specUrls = append(specUrls, urls{strings.Split(hrefFirst, "/")[5], strings.Split(hrefLast, "/")[5]})
 		})
 	})
+	for i, v := range codes {
+		Specialities = append(Specialities, model.Speciality{
+			Code: v,
+			Id:   ids[i]})
+	}
 	doc.Find("p").Each(func(i int, s *goquery.Selection) {
 		s.Find("strong").Each(func(i int, s2 *goquery.Selection) {
 			if strings.Contains(s2.Text(), "кон­суль­та­ций") {
