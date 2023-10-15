@@ -201,9 +201,7 @@ func getFiles() error {
 func prepareTeachersData() {
 	var schedule = make(map[string]map[string][]model.TeacherLesson)
 	for _, faculty := range *studentSchedule {
-		log.Println(faculty.Code)
 		for _, group := range faculty.Groups {
-			log.Println(group.Name)
 			for _, day := range group.Days {
 				for _, lesson := range day.Lessons {
 					if !helper.IsNotEmpty(lesson.Teacher) {
@@ -218,16 +216,12 @@ func prepareTeachersData() {
 						schedule[replacedTeacherName][replacedDate] = make([]model.TeacherLesson, 0)
 					}
 					teacherLesson := model.TeacherLesson{Name: lesson.Name, Group: group.Name, Classroom: lesson.Classroom, Subgroup: lesson.Subgroup, Time: lesson.Time, Height: lesson.Height}
-					//log.Println(teacherLesson)
 					schedule[replacedTeacherName][replacedDate] = append(schedule[replacedTeacherName][replacedDate], teacherLesson)
 				}
 			}
 		}
 	}
 
-	b, _ := json.Marshal(&schedule)
-	os.WriteFile("output.json", b, 0666)
-	//log.Println(string(b))
 	for teacherName, weekMap := range schedule {
 		var week = make([]model.TeacherDay, 0)
 		for date, lessons := range weekMap {
