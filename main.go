@@ -241,8 +241,8 @@ func prepareData() error {
 		b, _ := strings.CutPrefix(files[j], "downloads\\")
 		a = strings.Split(a, ".")[0]
 		b = strings.Split(b, ".")[0]
-		aConv, _ := strconv.Atoi(a)
-		bConv, _ := strconv.Atoi(b)
+		aConv, _ := strconv.ParseInt(a, 10, 64)
+		bConv, _ := strconv.ParseInt(b, 10, 64)
 		return aConv < bConv
 	})
 	for i, v := range files {
@@ -252,6 +252,7 @@ func prepareData() error {
 			groups, err = sheetparser.ParseScheduleSheet(v)
 			mutex.Lock()
 			(*studentSchedule)[index].Groups = groups
+			log.Println(index, v, (*studentSchedule)[index].Code, (*studentSchedule)[index].Groups[0].Name)
 			mutex.Unlock()
 			w.Done()
 		}(v, i)
