@@ -153,7 +153,8 @@ func getFiles() error {
 	for i, v := range *studentSchedule {
 		w.Add(1)
 		go func(id string, i int, code string) {
-			err = driveparser.GetFile(service, id, "downloads/"+strconv.Itoa(i)+"-"+code)
+			//err = driveparser.GetFile(service, id, "downloads/"+strconv.Itoa(i)+"-"+code)
+			err = driveparser.GetFile(service, id, "downloads/"+strconv.Itoa(i))
 			w.Done()
 		}(v.Id, i, v.Code)
 	}
@@ -235,10 +236,14 @@ func prepareTeachersData() {
 func prepareData() error {
 	var err error
 	files, _ := filepath.Glob(downloadsPath)
-	sort.SliceStable(files, func(i, j int) bool {
-		s1 := strings.Split(files[i], "-")[1]
-		s2 := strings.Split(files[j], "-")[1]
-		return s1 < s2
+	sort.Slice(files, func(i, j int) bool {
+		a, _ := strings.CutPrefix(files[i], "downloads\\")
+		b, _ := strings.CutPrefix(files[j], "downloads\\")
+		a = strings.Split(a, ".")[0]
+		b = strings.Split(b, ".")[0]
+		aConv, _ := strconv.Atoi(a)
+		bConv, _ := strconv.Atoi(b)
+		return aConv < bConv
 	})
 	for i, v := range files {
 		w.Add(1)
