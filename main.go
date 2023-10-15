@@ -11,12 +11,14 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
+	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/joho/godotenv"
-	"golang.org/x/exp/maps"
 	"google.golang.org/api/drive/v3"
 )
 
@@ -24,20 +26,16 @@ var studentSchedule *[]model.Faculty
 var teacherSchedule []model.Teacher
 var teacherConsultations map[string][]model.ConsultTeacher
 
-var scheduleData map[string]map[string]map[string]model.Day
-var consultationsData map[string]map[string][]model.ConsultDay
-
 var mutex *sync.Mutex
 var w *sync.WaitGroup
 var service *drive.Service
 
 var serverUrl string
 var token string
+var downloadsPath = "downloads/*.xlsx"
 
 func main() {
 	studentSchedule = &siteparser.Faculties
-	scheduleData = make(map[string]map[string]map[string]model.Day)
-	consultationsData = make(map[string]map[string][]model.ConsultDay)
 
 	mutex = &sync.Mutex{}
 	w = &sync.WaitGroup{}
@@ -73,25 +71,6 @@ func updateDb() error {
 	if err != nil {
 		return err
 	}
-
-	//*studentSchedule = make([]model.Faculty, 0)
-	//*studentSchedule = append(*studentSchedule, model.Faculty{Id: "", Code: "09.01.02"})
-	//*studentSchedule = append(*studentSchedule, model.Faculty{Id: "", Code: "09.01.03"})
-	//*studentSchedule = append(*studentSchedule, model.Faculty{Id: "", Code: "09.02.01"})
-	//*studentSchedule = append(*studentSchedule, model.Faculty{Id: "", Code: "09.02.02"})
-	//*studentSchedule = append(*studentSchedule, model.Faculty{Id: "", Code: "09.02.03"})
-	//*studentSchedule = append(*studentSchedule, model.Faculty{Id: "", Code: "09.02.04"})
-	//*studentSchedule = append(*studentSchedule, model.Faculty{Id: "", Code: "09.02.05"})
-	//*studentSchedule = append(*studentSchedule, model.Faculty{Id: "", Code: "09.02.06"})
-	//*studentSchedule = append(*studentSchedule, model.Faculty{Id: "", Code: "09.02.07"})
-	//*studentSchedule = append(*studentSchedule, model.Faculty{Id: "", Code: "10.02.04"})
-	//*studentSchedule = append(*studentSchedule, model.Faculty{Id: "", Code: "11.02.01"})
-	//*studentSchedule = append(*studentSchedule, model.Faculty{Id: "", Code: "11.02.02"})
-	//*studentSchedule = append(*studentSchedule, model.Faculty{Id: "", Code: "11.02.16"})
-	//*studentSchedule = append(*studentSchedule, model.Faculty{Id: "", Code: "11.02.17"})
-	//*studentSchedule = append(*studentSchedule, model.Faculty{Id: "", Code: "38.02.13"})
-	//*studentSchedule = append(*studentSchedule, model.Faculty{Id: "", Code: "54.02.01"})
-
 	err = getFiles()
 	if err != nil {
 		return err
@@ -101,9 +80,6 @@ func updateDb() error {
 		*studentSchedule = nil
 		teacherSchedule = nil
 		teacherConsultations = nil
-
-		maps.Clear(scheduleData)
-		maps.Clear(consultationsData)
 
 		return err
 	}
@@ -119,8 +95,6 @@ func updateDb() error {
 	teacherSchedule = nil
 	teacherConsultations = nil
 
-	maps.Clear(scheduleData)
-	maps.Clear(consultationsData)
 	return nil
 }
 
@@ -139,18 +113,14 @@ func getFileIds() error {
 
 func postData() error {
 	var body struct {
-		StudentSchedule      []model.Faculty                            `json:"student_schedule"`
-		TeacherSchedule      []model.Teacher                            `json:"teacher_schedule"`
-		TeacherConsultations map[string][]model.ConsultTeacher          `json:"teacher_consultations"`
-		Consultations        map[string]map[string][]model.ConsultDay   `json:"consultations"`
-		Schedule             map[string]map[string]map[string]model.Day `json:"schedule"`
-		UpdateDate           string                                     `json:"update_date"`
+		StudentSchedule      []model.Faculty                   `json:"student_schedule"`
+		TeacherSchedule      []model.Teacher                   `json:"teacher_schedule"`
+		TeacherConsultations map[string][]model.ConsultTeacher `json:"teacher_consultations"`
+		UpdateDate           string                            `json:"update_date"`
 	}
 	body.StudentSchedule = *studentSchedule
 	body.TeacherSchedule = teacherSchedule
 	body.TeacherConsultations = teacherConsultations
-	body.Consultations = consultationsData
-	body.Schedule = scheduleData
 
 	loc := time.FixedZone("UTC+5", 5*60*60)
 	t := time.Now().UTC().In(loc)
@@ -180,12 +150,12 @@ func postData() error {
 
 func getFiles() error {
 	var err error
-	for _, v := range *studentSchedule {
+	for i, v := range *studentSchedule {
 		w.Add(1)
-		go func(id string, code string) {
-			err = driveparser.GetFile(service, id, code)
+		go func(id string, i int, code string) {
+			err = driveparser.GetFile(service, id, "downloads/"+strconv.Itoa(i)+"-"+code)
 			w.Done()
-		}(v.Id, v.Code)
+		}(v.Id, i, v.Code)
 	}
 
 	w.Add(1)
@@ -231,50 +201,55 @@ func prepareTeachersData() {
 	}
 }
 
-func prepareOldData() {
-	w.Add(1)
-	go func() {
-		for _, v := range *studentSchedule {
-			code := strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(v.Code, "\n", ""), ".", "_"), " ", "")
-			scheduleData[code] = make(map[string]map[string]model.Day)
-			for _, group := range v.Groups {
-				groupName := strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(group.Name, "\n", ""), ".", "_"), " ", "")
-				scheduleData[code][groupName] = make(map[string]model.Day)
-				for _, day := range group.Days {
-					date := strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(group.Name, "\n", ""), ".", "_"), " ", "")
-					scheduleData[code][groupName][date] = day
+/*
+	func prepareOldData() {
+		w.Add(1)
+		go func() {
+			for _, v := range *studentSchedule {
+				code := strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(v.Code, "\n", ""), ".", "_"), " ", "")
+				scheduleData[code] = make(map[string]map[string]model.Day)
+				for _, group := range v.Groups {
+					groupName := strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(group.Name, "\n", ""), ".", "_"), " ", "")
+					scheduleData[code][groupName] = make(map[string]model.Day)
+					for _, day := range group.Days {
+						date := strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(group.Name, "\n", ""), ".", "_"), " ", "")
+						scheduleData[code][groupName][date] = day
+					}
 				}
 			}
-		}
-		w.Done()
-	}()
-	w.Add(1)
-	go func() {
-		for k, v := range teacherConsultations {
-			consultationsData[k] = make(map[string][]model.ConsultDay)
-			for _, teacher := range v {
-				name := strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(teacher.Name, "\n", ""), " ", "-"), ".", "_")
-				consultationsData[k][name] = teacher.Week
+			w.Done()
+		}()
+		w.Add(1)
+		go func() {
+			for k, v := range teacherConsultations {
+				consultationsData[k] = make(map[string][]model.ConsultDay)
+				for _, teacher := range v {
+					name := strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(teacher.Name, "\n", ""), " ", "-"), ".", "_")
+					consultationsData[k][name] = teacher.Week
+				}
 			}
-		}
-		w.Done()
-	}()
-}
-
+			w.Done()
+		}()
+	}
+*/
 func prepareData() error {
 	var err error
-	for i, v := range *studentSchedule {
+	files, _ := filepath.Glob(downloadsPath)
+	sort.SliceStable(files, func(i, j int) bool {
+		s1 := strings.Split(files[i], "-")[1]
+		s2 := strings.Split(files[j], "-")[1]
+		return s1 < s2
+	})
+	for i, v := range files {
 		w.Add(1)
-		go func(code string, i int) {
-
+		go func(v string, index int) {
 			var groups []model.Group
-			groups, err = sheetparser.ParseScheduleSheet(code + ".xlsx")
+			groups, err = sheetparser.ParseScheduleSheet(v)
 			mutex.Lock()
-
-			(*studentSchedule)[i].Groups = groups
+			(*studentSchedule)[index].Groups = groups
 			mutex.Unlock()
 			w.Done()
-		}(v.Code, i)
+		}(v, i)
 	}
 	w.Wait()
 	w.Add(1)
@@ -292,21 +267,21 @@ func prepareData() error {
 		teacherConsultations, err = sheetparser.ParseConsultationsFile("consult.xlsx")
 		w.Done()
 	}()
-	prepareOldData()
 	w.Wait()
 	return err
 }
 
 func deleteFiles() {
-	for _, v := range *studentSchedule {
+	files, _ := filepath.Glob(downloadsPath)
+	for _, file := range files {
 		w.Add(1)
-		go func(code string) {
-			err := os.Remove(code + ".xlsx")
+		go func(file string) {
+			err := os.Remove(file)
 			if err != nil {
 				log.Println(err)
 			}
 			w.Done()
-		}(v.Code)
+		}(file)
 	}
 	w.Add(1)
 	go func() {

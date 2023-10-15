@@ -9,12 +9,10 @@ import (
 )
 
 func ParseScheduleSheet(fileName string) ([]model.Group, error) {
-
 	f, err := excelize.OpenFile(fileName)
 	if err != nil {
 		return nil, err
 	}
-
 	sheets := f.WorkBook.Sheets.Sheet
 	if err != nil {
 		return nil, err
@@ -30,7 +28,8 @@ func ParseScheduleSheet(fileName string) ([]model.Group, error) {
 		if err != nil {
 			return nil, err
 		}
-		groups = append(sheetGroups, sheetGroups...)
+
+		groups = append(groups, sheetGroups...)
 	}
 	defer func(f *excelize.File) {
 		err := f.Close()
@@ -38,7 +37,6 @@ func ParseScheduleSheet(fileName string) ([]model.Group, error) {
 			log.Println(err)
 		}
 	}(f)
-
 	return groups, nil
 }
 
@@ -47,7 +45,6 @@ func GetGroups(cols *[][]string, f *excelize.File, name *string) ([]model.Group,
 	if err != nil {
 		return nil, err
 	}
-	//groups := make(map[string]map[string]model.Day)
 	groups := make([]model.Group, 0)
 
 	groupsRow := 0
