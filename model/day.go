@@ -1,6 +1,7 @@
 package model
 
 type Day struct {
-	Name    string
-	Lessons []Lesson
+	Name    string   `json:"name"`
+	Date    string   `json:"date"`
+	Lessons []Lesson `json:"lessons"`
 }

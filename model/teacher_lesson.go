@@ -1,8 +1,8 @@
 package model
 
-type Lesson struct {
+type TeacherLesson struct {
 	Name      string `json:"name"`
-	Teacher   string `json:"teacher"`
+	Group     string `json:"group"`
 	Classroom string `json:"classroom"`
 	Time      string `json:"time"`
 	Subgroup  int    `json:"subgroup"`

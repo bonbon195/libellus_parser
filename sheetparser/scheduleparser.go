@@ -1,15 +1,14 @@
 package sheetparser
 
 import (
+	"github.com/xuri/excelize/v2"
 	"libellus_parser/helper"
 	"libellus_parser/model"
+	"log"
 	"strings"
-
-	"github.com/xuri/excelize/v2"
-	"golang.org/x/exp/maps"
 )
 
-func ParseScheduleSheet(fileName string) (map[string]map[string]model.Day, error) {
+func ParseScheduleSheet(fileName string) ([]model.Group, error) {
 
 	f, err := excelize.OpenFile(fileName)
 	if err != nil {
@@ -20,7 +19,7 @@ func ParseScheduleSheet(fileName string) (map[string]map[string]model.Day, error
 	if err != nil {
 		return nil, err
 	}
-	var groups = make(map[string]map[string]model.Day)
+	var groups = make([]model.Group, 0)
 	for _, sheet := range sheets {
 		name := &sheet.Name
 		cols, err := f.GetCols(*name)
@@ -31,20 +30,26 @@ func ParseScheduleSheet(fileName string) (map[string]map[string]model.Day, error
 		if err != nil {
 			return nil, err
 		}
-		maps.Copy(groups, sheetGroups)
-
+		groups = append(sheetGroups, sheetGroups...)
 	}
-	defer f.Close()
+	defer func(f *excelize.File) {
+		err := f.Close()
+		if err != nil {
+			log.Println(err)
+		}
+	}(f)
 
 	return groups, nil
 }
 
-func GetGroups(cols *[][]string, f *excelize.File, name *string) (map[string]map[string]model.Day, error) {
+func GetGroups(cols *[][]string, f *excelize.File, name *string) ([]model.Group, error) {
 	rows, err := f.GetRows(*name)
 	if err != nil {
 		return nil, err
 	}
-	groups := make(map[string]map[string]model.Day)
+	//groups := make(map[string]map[string]model.Day)
+	groups := make([]model.Group, 0)
+
 	groupsRow := 0
 	groupsCol := 0
 	for i, col := range *cols {
@@ -62,23 +67,24 @@ func GetGroups(cols *[][]string, f *excelize.File, name *string) (map[string]map
 			if err != nil {
 				return nil, err
 			}
-			groups[v] = days
+			groups = append(groups, model.Group{Name: v, Days: days})
 		}
+
 	}
 	return groups, nil
 }
 
-func getDays(cols *[][]string, f *excelize.File, name *string, colNum int, dayStartPos int, size int) (map[string]model.Day, error) {
-	var days = make(map[string]model.Day)
-
+func getDays(cols *[][]string, f *excelize.File, name *string, colNum int, dayStartPos int, size int) ([]model.Day, error) {
+	var days = make([]model.Day, 0)
 	for i, v := range (*cols)[0][dayStartPos:] {
 		if helper.IsNotEmpty(v) {
+			s := strings.Split(v, " ")
+			date := s[0]
 			lessons, err := getLessons(cols, f, name, &colNum, i+dayStartPos, size)
 			if err != nil {
 				return nil, err
 			}
-			s := strings.Split(v, " ")
-			days[strings.Replace(s[0], ".", "-", -1)] = model.Day{Name: s[2], Lessons: lessons}
+			days = append(days, model.Day{Name: s[2], Date: date, Lessons: lessons})
 		}
 	}
 	return days, nil
@@ -146,7 +152,6 @@ func getLessons(cols *[][]string, f *excelize.File, name *string, colNum *int, d
 
 			lesson = model.Lesson{Name: "", Teacher: "", Classroom: "", Subgroup: 0, Time: time, Height: 1}
 		}
-
 		lessons = append(lessons, lesson)
 	}
 

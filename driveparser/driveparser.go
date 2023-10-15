@@ -1,25 +1,18 @@
 package driveparser
 
 import (
+	"io"
 	"net/http"
 	"os"
-	"time"
 
-	"io"
-
-	"github.com/google/uuid"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2/google"
-	"google.golang.org/api/drive/v2"
+	"google.golang.org/api/drive/v3"
 	"google.golang.org/api/option"
 )
 
 func GetClient() (*http.Client, error) {
-	b, err := os.ReadFile(os.Getenv("CREDENTIALS_FILE"))
-	if err != nil {
-		return nil, err
-	}
-	config, err := google.JWTConfigFromJSON(b, drive.DriveReadonlyScope)
+	config, err := google.JWTConfigFromJSON([]byte(os.Getenv("SERVICE_ACCOUNT_CREDENTIALS")), drive.DriveReadonlyScope)
 	if err != nil {
 		return nil, err
 	}
@@ -62,18 +55,4 @@ func GetFile(service *drive.Service, fileId string, fileName string) error {
 		return err
 	}
 	return err1
-}
-
-func WatchFile(service *drive.Service, fileId string) (*drive.Channel, error) {
-	channel := drive.Channel{
-		Address:    os.Getenv("WEB_HOOK_ADDRESS"),
-		Type:       "web_hook",
-		Id:         uuid.New().String(),
-		Expiration: time.Now().UTC().Add(time.Hour * 24).UnixMilli()}
-
-	ch, err := service.Files.Watch(fileId, &channel).SupportsAllDrives(true).Do()
-	if err != nil {
-		return nil, err
-	}
-	return ch, nil
 }

@@ -13,7 +13,7 @@ import (
 
 const urtkUrl string = "https://urtt.ru/students/dnevnoe/raspisaniya/"
 
-var Specialities []model.Speciality
+var Faculties []model.Faculty
 var ConsultationsId string
 
 func GetWebPage() (*goquery.Document, error) {
@@ -58,7 +58,7 @@ func ParseWebPage(doc *goquery.Document) {
 		})
 	})
 	for i, v := range codes {
-		Specialities = append(Specialities, model.Speciality{
+		Faculties = append(Faculties, model.Faculty{
 			Code: v,
 			Id:   ids[i]})
 	}

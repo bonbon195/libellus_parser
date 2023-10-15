@@ -9,5 +9,5 @@ func First[T, U any](val T, _ U) T {
 }
 
 func IsNotEmpty(s string) bool {
-	return len(strings.ReplaceAll(s, " ", "")) != 0
+	return len(strings.ReplaceAll(strings.ReplaceAll(s, "\n", ""), " ", "")) != 0
 }

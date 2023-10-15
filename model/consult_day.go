@@ -1,8 +1,8 @@
 package model
 
 type ConsultDay struct {
-	Name      string
-	Date      string
-	Time      string
-	Classroom string
+	Name      string `json:"name"`
+	Date      string `json:"date"`
+	Time      string `json:"time"`
+	Classroom string `json:"classroom"`
 }
