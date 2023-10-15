@@ -252,7 +252,6 @@ func prepareData() error {
 			groups, err = sheetparser.ParseScheduleSheet(v)
 			mutex.Lock()
 			(*studentSchedule)[index].Groups = groups
-			log.Println(index, v, (*studentSchedule)[index].Code, (*studentSchedule)[index].Groups[0].Name)
 			mutex.Unlock()
 			w.Done()
 		}(v, i)
